@@ -48,14 +48,14 @@ show_image(output)
     
 """
 matches_kp1, matches_kp2 = transformPtsToArrayPts(kp1, kp2, matches)
-F, best_kp1, best_kp2 = findFundMatRansac(matches_kp1, matches_kp2, returnMatches=True, threshold=0.5)
+F, best_kp1, best_kp2 = findFundMatRansac(matches_kp1, matches_kp2, returnMatches=True, threshold=0.1)
 
 # Show Our Correspondences
 lines1 = computeEpipoleLines(F.transpose(), best_kp2)
 img3,img4 = drawlines(img1,img2,lines1,best_kp1,best_kp2)
 lines2 = computeEpipoleLines(F, best_kp1)
 img6,img5 = drawlines(img2,img1,lines2,best_kp2,best_kp1)
-
+'''
 plt.figure()
 plt.tight_layout()
 plt.subplot(221); plt.imshow(img3); plt.xticks([]), plt.yticks([])
@@ -63,7 +63,7 @@ plt.subplot(222); plt.imshow(img4); plt.xticks([]), plt.yticks([])
 plt.subplot(223); plt.imshow(img5); plt.xticks([]), plt.yticks([])
 plt.subplot(224); plt.imshow(img6); plt.xticks([]), plt.yticks([])
 plt.show()
-
+'''
 """
     Computing Essential Matrix
     
@@ -77,6 +77,11 @@ E = np.dot(K2.transpose(), np.dot(F, K1))
 """
 all_p2_solutions = decomposeEssentialMatrix(E)
 best_p1, best_p2, points = findPandX(best_kp1, best_kp2, K1, K2, all_p2_solutions)
+
+if args.mode == 2:
+	obj_main(points, best_kp1, best_p1, "data/Statue1.bmp", 2)
+else:
+	obj_main(points, best_kp1, best_p1, "data/Mesona1.JPG", 1)
 
 plt.rcParams['figure.figsize'] = [8,8]
 fig = plt.figure()

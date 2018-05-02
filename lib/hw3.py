@@ -1,6 +1,8 @@
 import cv2 as cv
 import numpy as np
 import random
+import matplotlib.pyplot as plt
+import matplotlib.tri as mtri
 
 
 def normalize2dpts(in_pts):
@@ -215,3 +217,64 @@ def findPandX(kp1, kp2, K1, K2, p2_solutions):
             best_p2 = p2
             best_p2_points = points
     return p1, best_p2, best_p2_points
+
+def CheckVisible(M, P1, P2, P3):
+    '''
+    used to check if the surface normal facing the camera
+    
+    M: 3x4 projection matrix
+    P1, P2, P3: 3D points
+    '''
+    tri_normal = np.cross((P2-P1), (P3-P2))
+    # camera direction
+    cam_dir = np.asarray([M[2, 0], M[2, 1], M[2, 2]]) 
+    
+    test_result = np.dot(cam_dir, tri_normal)
+    
+    if (test_result<0):
+        bVisible = 1  # visible
+    else:
+        bVisible = 0;  # invisible
+        
+    return bVisible
+
+def obj_main(P, p_img2, M, tex_name, im_index):
+    tuples_img2_pts = [(p_img2[i, 0], p_img2[i, 1]) for i in range(len(p_img2))]
+    img = plt.imread(tex_name)
+    img_size = img.shape
+    '''
+    % mesh-triangulation
+    '''
+    tri = mtri.Triangulation(p_img2[:, 0], p_img2[:, 1])
+    # trisurf mesh triangulation
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111, projection='3d')
+    #ax.plot_trisurf(P[:, 0], P[:, 1], P[:, 2], triangles=tri.triangles)
+    
+    with open('model'+str(im_index)+'.obj', 'w') as fp:
+        fp.write("# objfile\n")
+        fp.write('mtllib model'+str(im_index)+'.mtl\n\n')
+        fp.write('usemtl Texture\n')
+        
+        for i in range(len(P)):
+            fp.write('v %f %f %f \n' % (P[i, 0], P[i, 1], P[i, 2]))
+            
+        fp.write('\n\n\n')
+        
+        for i in range(len(p_img2)):
+            fp.write('vt %f %f\n' % (p_img2[i, 0]/img_size[1], 1-p_img2[i, 1]/img_size[0]))
+            
+        fp.write('\n\n\n')
+        
+        for i, triangle in enumerate(tri.triangles):
+            bVisible = CheckVisible(M, P[triangle[0], :], P[triangle[1], :], P[triangle[2], :])
+            if bVisible == True:
+                fp.write('f %d/%d %d/%d %d/%d\n' % (triangle[0]+1, triangle[0]+1, triangle[1]+1, triangle[1]+1, triangle[2]+1, triangle[2]+1))
+            else:
+                fp.write('f %d/%d %d/%d %d/%d\n' % (triangle[1]+1, triangle[1]+1, triangle[0]+1, triangle[0]+1, triangle[2]+1, triangle[2]+1))
+    
+    with open('model'+str(im_index)+'.mtl', 'w') as fp:
+        fp.write('# MTL file\n')
+        fp.write('newmtl Texture\n')
+        fp.write('Ka 1 1 1\nKd 1 1 1\nKs 1 1 1\n')
+        fp.write('map_Kd '+tex_name+'\n')
